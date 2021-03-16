@@ -2,15 +2,14 @@ specVersion: 0.0.2
 description: A dope MoonCatsRescue subgraph
 repository: https://github.com/merklejerk/mooncatsrescue-subgraph
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: MoonCatRescue
     network: mainnet
     source:
-      address: '0x60cd862c9C687A9dE49aecdC3A99b74A4fc54aB6'
+      address: "0x60cd862c9C687A9dE49aecdC3A99b74A4fc54aB6"
       abi: MoonCatRescue
-      startBlock: 4134867
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -24,7 +23,7 @@ dataSources:
         - Bid
       abis:
         - name: MoonCatRescue
-          file: ./abis/MoonCatRescue.json
+          file: MoonCatRescue/abis/MoonCatRescue.json
       eventHandlers:
         - event: CatRescued(indexed address,indexed bytes5)
           handler: handleCatRescuedEvent
@@ -42,14 +41,13 @@ dataSources:
           handler: handleAdoptionRequestedCancelledEvent
         - event: GenesisCatsAdded(bytes5[16])
           handler: handleGenesisCatsAddedEvent
-      file: ./src/mapping.ts
+      file: MoonCatRescue/MoonCatRescue.wasm
   - kind: ethereum/contract
     name: MoonCatsWrapped
     network: mainnet
     source:
-      address: '0x7c40c393dc0f283f318791d746d894ddd3693572'
+      address: "0x7c40c393dc0f283f318791d746d894ddd3693572"
       abi: MoonCatsWrapped
-      startBlock: 12025811
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.4
@@ -58,10 +56,10 @@ dataSources:
         - Cat
       abis:
         - name: MoonCatsWrapped
-          file: ./abis/MoonCatsWrapped.json
+          file: MoonCatsWrapped/abis/MoonCatsWrapped.json
       eventHandlers:
         - event: Wrapped(indexed bytes5,uint256)
           handler: handleCatWrappedEvent
         - event: Unwrapped(indexed bytes5,uint256)
           handler: handleCatUnwrappedEvent
-      file: ./src/mapping.ts
+      file: MoonCatRescue/MoonCatRescue.wasm

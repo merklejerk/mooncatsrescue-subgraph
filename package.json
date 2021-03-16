@@ -1,18 +1,20 @@
 {
-  "name": "mooncatsrescue",
+  "name": "mooncatsrescue-subgraph",
+  "private": "true",
   "version": "0.1.0",
   "scripts": {
     "build-contract": "solc contracts/Gravity.sol --abi -o abis --overwrite && solc contracts/Gravity.sol --bin -o bin --overwrite",
-    "create": "graph create merklejerk/mooncatsrescue --node https://api.thegraph.com/deploy/",
-    "create-local": "graph create merklejerk/mooncatsrescue --node http://127.0.0.1:8020",
+    "create": "graph create merklejerk/moon-cats-rescue --node https://api.thegraph.com/deploy/",
+    "create-local": "graph create merklejerk/moon-cats-rescue --node http://127.0.0.1:8020",
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy merklejerk/mooncatsrescue --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
-    "deploy-local": "graph deploy merklejerk/mooncatsrescue --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
+    "deploy": "graph deploy merklejerk/moon-cats-rescue --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "deploy-local": "graph deploy merklejerk/moon-cats-rescue --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.20.0",
-    "@graphprotocol/graph-ts": "^0.20.0"
+    "@graphprotocol/graph-ts": "^0.20.0",
+    "dotenv": "^8.2.0"
   },
   "dependencies": {
     "babel-polyfill": "^6.26.0",
