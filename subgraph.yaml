@@ -26,12 +26,12 @@ dataSources:
         - name: MoonCatRescue
           file: ./abis/MoonCatRescue.json
       eventHandlers:
+        - event: GenesisCatsAdded(bytes5[16])
+          handler: handleGenesisCatsAddedEvent
         - event: CatRescued(indexed address,indexed bytes5)
           handler: handleCatRescuedEvent
         - event: CatNamed(indexed bytes5,bytes32)
           handler: handleCatNamedEvent
-        - event: CatAdopted(indexed bytes5,uint256,indexed address,indexed address)
-          handler: handleCatAdoptedEvent
         - event: AdoptionOffered(indexed bytes5,uint256,indexed address)
           handler: handleAdoptionOfferedEvent
         - event: AdoptionOfferCancelled(indexed bytes5)
@@ -39,9 +39,9 @@ dataSources:
         - event: AdoptionRequested(indexed bytes5,uint256,indexed address)
           handler: handleAdoptionRequestedEvent
         - event: AdoptionRequestCancelled(indexed bytes5)
-          handler: handleAdoptionRequestedCancelledEvent
-        - event: GenesisCatsAdded(bytes5[16])
-          handler: handleGenesisCatsAddedEvent
+          handler: handleAdoptionRequestCancelledEvent
+        - event: CatAdopted(indexed bytes5,uint256,indexed address,indexed address)
+          handler: handleCatAdoptedEvent
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: MoonCatsWrapped

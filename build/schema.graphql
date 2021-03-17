@@ -1,18 +1,18 @@
 type Cat @entity {
     id: ID!
+    catId: String!
     isGenesis: Boolean!
     rescueTime: Int!
     rescueBlock: Int!
     rescueIndex: Int!
+    rescuer: Owner!
     name: String
     namedBlock: Int
     namedTimestamp: Int
-    namedOwner: Owner
+    namer: Owner
     wrapperTokenId: BigInt
     owner: Owner!
-    lastAdoptionPrice: BigInt
-    lastAdoptionBlock: Int
-    lastAdoptionTime: Int
+    maxAdoptionPrice: BigInt!
     adoptionHistory: [Adoption!]! @derivedFrom(field: "cat")
     askPrice: BigInt
     ask: Ask
@@ -49,11 +49,15 @@ type Adoption @entity {
     from: Owner!
     to: Owner!
     price: BigInt!
+    isWrapping: Boolean!
 }
 
 type Owner @entity {
     id: ID!
+    catCount: Int!
+    isWrapper: Boolean!
     cats: [Cat!]! @derivedFrom(field: "owner")
+    asks: [Ask!]! @derivedFrom(field: "owner")
 }
 
 type Bidder @entity {

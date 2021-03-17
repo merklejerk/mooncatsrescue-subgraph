@@ -42,6 +42,15 @@ export class Cat extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get catId(): string {
+    let value = this.get("catId");
+    return value.toString();
+  }
+
+  set catId(value: string) {
+    this.set("catId", Value.fromString(value));
+  }
+
   get isGenesis(): boolean {
     let value = this.get("isGenesis");
     return value.toBoolean();
@@ -76,6 +85,15 @@ export class Cat extends Entity {
 
   set rescueIndex(value: i32) {
     this.set("rescueIndex", Value.fromI32(value));
+  }
+
+  get rescuer(): string {
+    let value = this.get("rescuer");
+    return value.toString();
+  }
+
+  set rescuer(value: string) {
+    this.set("rescuer", Value.fromString(value));
   }
 
   get name(): string | null {
@@ -113,8 +131,8 @@ export class Cat extends Entity {
     this.set("namedTimestamp", Value.fromI32(value));
   }
 
-  get namedOwner(): string | null {
-    let value = this.get("namedOwner");
+  get namer(): string | null {
+    let value = this.get("namer");
     if (value === null || value.kind == ValueKind.NULL) {
       return null;
     } else {
@@ -122,11 +140,11 @@ export class Cat extends Entity {
     }
   }
 
-  set namedOwner(value: string | null) {
+  set namer(value: string | null) {
     if (value === null) {
-      this.unset("namedOwner");
+      this.unset("namer");
     } else {
-      this.set("namedOwner", Value.fromString(value as string));
+      this.set("namer", Value.fromString(value as string));
     }
   }
 
@@ -156,39 +174,13 @@ export class Cat extends Entity {
     this.set("owner", Value.fromString(value));
   }
 
-  get lastAdoptionPrice(): BigInt | null {
-    let value = this.get("lastAdoptionPrice");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toBigInt();
-    }
+  get maxAdoptionPrice(): BigInt {
+    let value = this.get("maxAdoptionPrice");
+    return value.toBigInt();
   }
 
-  set lastAdoptionPrice(value: BigInt | null) {
-    if (value === null) {
-      this.unset("lastAdoptionPrice");
-    } else {
-      this.set("lastAdoptionPrice", Value.fromBigInt(value as BigInt));
-    }
-  }
-
-  get lastAdoptionBlock(): i32 {
-    let value = this.get("lastAdoptionBlock");
-    return value.toI32();
-  }
-
-  set lastAdoptionBlock(value: i32) {
-    this.set("lastAdoptionBlock", Value.fromI32(value));
-  }
-
-  get lastAdoptionTime(): i32 {
-    let value = this.get("lastAdoptionTime");
-    return value.toI32();
-  }
-
-  set lastAdoptionTime(value: i32) {
-    this.set("lastAdoptionTime", Value.fromI32(value));
+  set maxAdoptionPrice(value: BigInt) {
+    this.set("maxAdoptionPrice", Value.fromBigInt(value));
   }
 
   get adoptionHistory(): Array<string> {
@@ -539,6 +531,15 @@ export class Adoption extends Entity {
   set price(value: BigInt) {
     this.set("price", Value.fromBigInt(value));
   }
+
+  get isWrapping(): boolean {
+    let value = this.get("isWrapping");
+    return value.toBoolean();
+  }
+
+  set isWrapping(value: boolean) {
+    this.set("isWrapping", Value.fromBoolean(value));
+  }
 }
 
 export class Owner extends Entity {
@@ -571,6 +572,24 @@ export class Owner extends Entity {
     this.set("id", Value.fromString(value));
   }
 
+  get catCount(): i32 {
+    let value = this.get("catCount");
+    return value.toI32();
+  }
+
+  set catCount(value: i32) {
+    this.set("catCount", Value.fromI32(value));
+  }
+
+  get isWrapper(): boolean {
+    let value = this.get("isWrapper");
+    return value.toBoolean();
+  }
+
+  set isWrapper(value: boolean) {
+    this.set("isWrapper", Value.fromBoolean(value));
+  }
+
   get cats(): Array<string> {
     let value = this.get("cats");
     return value.toStringArray();
@@ -578,6 +597,15 @@ export class Owner extends Entity {
 
   set cats(value: Array<string>) {
     this.set("cats", Value.fromStringArray(value));
+  }
+
+  get asks(): Array<string> {
+    let value = this.get("asks");
+    return value.toStringArray();
+  }
+
+  set asks(value: Array<string>) {
+    this.set("asks", Value.fromStringArray(value));
   }
 }
 

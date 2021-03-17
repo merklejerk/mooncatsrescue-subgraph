@@ -13,8 +13,7 @@
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.20.0",
-    "@graphprotocol/graph-ts": "^0.20.0",
-    "dotenv": "^8.2.0"
+    "@graphprotocol/graph-ts": "^0.20.0"
   },
   "dependencies": {
     "babel-polyfill": "^6.26.0",

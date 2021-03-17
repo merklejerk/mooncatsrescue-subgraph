@@ -1,6 +1,5 @@
-import { Address, BigInt, Bytes, ethereum, store } from '@graphprotocol/graph-ts';
+import { Address, BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 import {
-    MoonCatRescue,
     CatRescued as CatRescuedEvent,
     CatNamed as CatNamedEvent,
     CatAdopted as CatAdoptedEvent,
@@ -30,82 +29,101 @@ let RESCUE_INDEX_ID = 'RESCUE_INDEX';
 let WRAPPER_ADDRESS = Address.fromHexString('0x7c40c393dc0f283f318791d746d894ddd3693572') as Address;
 
 export function handleGenesisCatsAddedEvent(event: GenesisCatsAddedEvent): void {
+    let catIds = event.params.catIds;
+
     let owner = getOrCreateOwnerEntity(NULL_ADDRESS);
+    owner.catCount = (owner.catCount + catIds.length) as i32;
     owner.save();
 
-    let rescueIndex = RescueIndexEntity.load(RESCUE_INDEX_ID);
-    let catIds = event.params.catIds;
-    for (let i = 0; i < catIds.length; ++i, ++rescueIndex.index) {
+    let rescueIndex = getRescueIndex();
+    for (let i = 0; i < catIds.length; ++i, ++rescueIndex) {
         let catIdHex = catIds[i].toHex();
+        log.debug('minting genesis cat {}', [catIdHex]);
         let cat = new CatEntity(catIdHex);
+        cat.catId = catIdHex;
         cat.rescueTime = event.block.timestamp.toI32();
         cat.rescueBlock = event.block.number.toI32();
-        cat.rescueIndex = rescueIndex!.index;
+        cat.rescueIndex = rescueIndex as i32;
+        cat.maxAdoptionPrice = ZERO;
+        cat.rescuer = owner.id;
         cat.owner = owner.id;
-        cat.save();
         cat.isGenesis = true;
+        cat.save();
     }
-    rescueIndex.save();
+    saveRescueIndex(rescueIndex);
 }
 export function handleCatRescuedEvent(event: CatRescuedEvent): void {
     let catIdHex = event.params.catId.toHex();
+    log.debug('rescuing cat {}', [catIdHex]);
 
     let owner = getOrCreateOwnerEntity(event.params.to);
+    owner.catCount = (owner.catCount + 1) as i32;
     owner.save();
 
-    let rescueIndex = RescueIndexEntity.load(RESCUE_INDEX_ID);
+    let rescueIndex = getRescueIndex();
     let cat = new CatEntity(catIdHex);
-    cat.isGenesis = false;
+    cat.catId = catIdHex;
     cat.rescueTime = event.block.timestamp.toI32();
     cat.rescueBlock = event.block.number.toI32();
-    cat.rescueIndex = rescueIndex!.index++;
+    cat.rescueIndex = rescueIndex++ as i32;
+    cat.maxAdoptionPrice = ZERO;
+    cat.rescuer = owner.id;
     cat.owner = owner.id;
+    cat.isGenesis = false;
     cat.save();
-    rescueIndex.save();
+    saveRescueIndex(rescueIndex);
 }
 
 export function handleCatNamedEvent(event: CatNamedEvent): void {
     let catIdHex = event.params.catId.toHex();
     let cat = getCatEntity(catIdHex);
-    cat.name = event.params.catName.toString();
+    let catName = event.params.catName.toString();
+    let owner = OwnerEntity.load(cat.owner);
+    log.debug('naming cat {} as "{}"', [catIdHex, catName]);
+    cat.name = catName;
     cat.namedBlock = event.block.number.toI32();
     cat.namedTimestamp = event.block.timestamp.toI32();
-    cat.namedOwner = event.transaction.from.toHex(); // not really
+    cat.namer = owner.id;
+    cat.save();
 }
 
 export function handleCatAdoptedEvent(event: CatAdoptedEvent): void {
+    let oldOwner = getOrCreateOwnerEntity(event.params.from);
+    oldOwner.catCount = (oldOwner.catCount - 1) as i32;
+    oldOwner.save();
+
     let newOwner = getOrCreateOwnerEntity(event.params.to);
+    newOwner.catCount = (newOwner.catCount + 1) as i32;
     newOwner.save();
+
     let catIdHex = event.params.catId.toHex();
+    log.debug('adopting cat {} for price {}', [catIdHex, event.params.price.toString()]);
     let cat = getCatEntity(catIdHex);
-    let oldOwnerId = cat.owner;
-    if (cat.askPrice) {
-        if (cat.askPrice! != event.params.price) {
-            throw new Error('cat ask price does not match adoption price');
-        }
-    }
-    if (cat.bidPrice) {
-        if (cat.bidPrice! != event.params.price) {
-            throw new Error('cat bid price does not match adoption price');
-        }
-    }
     cat.askPrice = ZERO;
     cat.bidPrice = ZERO;
     cat.ask = null;
-    cat.bid = null;
-    cat.lastAdoptionPrice = event.params.price;
-    cat.lastAdoptionBlock = event.block.number.toI32();
-    cat.lastAdoptionTime = event.block.timestamp.toI32();
+    if (event.params.price.gt(cat.maxAdoptionPrice)) {
+        cat.maxAdoptionPrice = event.params.price;
+    }
     cat.owner = newOwner.id;
+    // clear current bid if new owner is the bidder.
+    if (cat.bid) {
+        let bid = BidEntity.load(cat.bid!);
+        let bidder = BidderEntity.load(bid!.bidder);
+        if (bidder!.id == newOwner.id) {
+            cat.bid = null;
+        }
+    }
     cat.save();
 
     let adoption = new AdoptionEntity(createCatEventEntityId(catIdHex, event));
     adoption.block = event.block.number.toI32();
     adoption.time = event.block.timestamp.toI32();
     adoption.cat = catIdHex;
-    adoption.from = oldOwnerId;
+    adoption.from = oldOwner.id;
     adoption.to = newOwner.id;
     adoption.price = event.params.price;
+    adoption.isWrapping = event.params.to == WRAPPER_ADDRESS;
     adoption.save();
 }
 
@@ -169,6 +187,7 @@ export function handleAdoptionRequestCancelledEvent(event: CatAdoptionRequestCan
     let catIdHex = event.params.catId.toHex();
     let cat = getCatEntity(catIdHex);
     if (!cat.bid) {
+        log.error('No bid to cancel for cat {}', [catIdHex]);
         throw new Error('No bid to cancel');
     }
     let lastBid = BidEntity.load(cat.bid!);
@@ -190,6 +209,7 @@ export function handleCatWrappedEvent(event: CatWrappedEvent): void {
     let catIdHex = event.params.catId.toHex();
     let cat = getCatEntity(catIdHex);
     if (cat.owner != WRAPPER_ADDRESS.toHex()) {
+        log.error('Cat {} is not owned by wrapper', [catIdHex]);
         throw new Error('cat is not owned by wrapper');
     }
     cat.wrapperTokenId = event.params.tokenID;
@@ -200,6 +220,7 @@ export function handleCatUnwrappedEvent(event: CatUnwrappedEvent): void {
     let catIdHex = event.params.catId.toHex();
     let cat = getCatEntity(catIdHex);
     if (cat.owner == WRAPPER_ADDRESS.toHex()) {
+        log.error('Cat {} is still owned by wrapper', [catIdHex]);
         throw new Error('cat is still owned by wrapper');
     }
     cat.wrapperTokenId = null;
@@ -213,6 +234,7 @@ function createCatEventEntityId(catIdHex: string, event: ethereum.Event): string
 function getCatEntity(catId: string): CatEntity {
     let cat = CatEntity.load(catId);
     if (!cat) {
+        log.error('Cat {} not found', [catId]);
         throw new Error('cat with id ' + catId + ' not found');
     }
     return cat!;
@@ -222,6 +244,8 @@ function getOrCreateOwnerEntity(addr: Address): OwnerEntity {
     let owner = OwnerEntity.load(addr.toHex());
     if (!owner) {
         owner = new OwnerEntity(addr.toHex());
+        owner.catCount = 0;
+        owner.isWrapper = addr == WRAPPER_ADDRESS;
     }
     return owner!;
 }
@@ -232,4 +256,18 @@ function getOrCreateBidderEntity(addr: Address): BidderEntity {
         bidder = new BidderEntity(addr.toHex());
     }
     return bidder!;
+}
+
+function getRescueIndex(): number {
+    let e = RescueIndexEntity.load(RESCUE_INDEX_ID);
+    if (!e) {
+        return 0;
+    }
+    return e!.index as number;
+}
+
+function saveRescueIndex(idx: number): void {
+    let e = new RescueIndexEntity(RESCUE_INDEX_ID);
+    e.index = idx as i32;
+    e.save();
 }
