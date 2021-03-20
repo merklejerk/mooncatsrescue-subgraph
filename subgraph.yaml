@@ -64,4 +64,6 @@ dataSources:
           handler: handleCatWrappedEvent
         - event: Unwrapped(indexed bytes5,uint256)
           handler: handleCatUnwrappedEvent
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleWrappedCatTransferEvent
       file: ./src/mapping.ts

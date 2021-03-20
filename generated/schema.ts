@@ -148,6 +148,15 @@ export class Cat extends Entity {
     }
   }
 
+  get wasWrapped(): boolean {
+    let value = this.get("wasWrapped");
+    return value.toBoolean();
+  }
+
+  set wasWrapped(value: boolean) {
+    this.set("wasWrapped", Value.fromBoolean(value));
+  }
+
   get wrapperTokenId(): BigInt | null {
     let value = this.get("wrapperTokenId");
     if (value === null || value.kind == ValueKind.NULL) {
@@ -172,6 +181,23 @@ export class Cat extends Entity {
 
   set owner(value: string) {
     this.set("owner", Value.fromString(value));
+  }
+
+  get wrapperOwner(): string | null {
+    let value = this.get("wrapperOwner");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toString();
+    }
+  }
+
+  set wrapperOwner(value: string | null) {
+    if (value === null) {
+      this.unset("wrapperOwner");
+    } else {
+      this.set("wrapperOwner", Value.fromString(value as string));
+    }
   }
 
   get maxAdoptionPrice(): BigInt {

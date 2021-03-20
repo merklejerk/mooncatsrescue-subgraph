@@ -10,8 +10,10 @@ type Cat @entity {
     namedBlock: Int
     namedTimestamp: Int
     namer: Owner
+    wasWrapped: Boolean!
     wrapperTokenId: BigInt
     owner: Owner!
+    wrapperOwner: Owner
     maxAdoptionPrice: BigInt!
     adoptionHistory: [Adoption!]! @derivedFrom(field: "cat")
     askPrice: BigInt

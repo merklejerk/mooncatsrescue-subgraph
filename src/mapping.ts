@@ -12,6 +12,8 @@ import {
 import {
     Wrapped as CatWrappedEvent,
     Unwrapped as CatUnwrappedEvent,
+    Transfer as WrappedCatTransferEvent,
+    MoonCatsWrapped,
 } from '../generated/MoonCatsWrapped/MoonCatsWrapped';
 import {
     Cat as CatEntity,
@@ -27,6 +29,7 @@ let ZERO = BigInt.fromI32(0);
 let NULL_ADDRESS = Address.fromHexString('0x0000000000000000000000000000000000000000') as Address;
 let RESCUE_INDEX_ID = 'RESCUE_INDEX';
 let WRAPPER_ADDRESS = Address.fromHexString('0x7c40c393dc0f283f318791d746d894ddd3693572') as Address;
+let WRAPPER = MoonCatsWrapped.bind(WRAPPER_ADDRESS);
 
 export function handleGenesisCatsAddedEvent(event: GenesisCatsAddedEvent): void {
     let catIds = event.params.catIds;
@@ -48,6 +51,7 @@ export function handleGenesisCatsAddedEvent(event: GenesisCatsAddedEvent): void 
         cat.rescuer = owner.id;
         cat.owner = owner.id;
         cat.isGenesis = true;
+        cat.wasWrapped = false;
         cat.save();
     }
     saveRescueIndex(rescueIndex);
@@ -70,6 +74,7 @@ export function handleCatRescuedEvent(event: CatRescuedEvent): void {
     cat.rescuer = owner.id;
     cat.owner = owner.id;
     cat.isGenesis = false;
+    cat.wasWrapped = false;
     cat.save();
     saveRescueIndex(rescueIndex);
 }
@@ -188,7 +193,7 @@ export function handleAdoptionRequestCancelledEvent(event: CatAdoptionRequestCan
     let cat = getCatEntity(catIdHex);
     if (!cat.bid) {
         log.error('No bid to cancel for cat {}', [catIdHex]);
-        throw new Error('No bid to cancel');
+        throw '';
     }
     let lastBid = BidEntity.load(cat.bid!);
     cat.bidPrice = ZERO;
@@ -210,9 +215,11 @@ export function handleCatWrappedEvent(event: CatWrappedEvent): void {
     let cat = getCatEntity(catIdHex);
     if (cat.owner != WRAPPER_ADDRESS.toHex()) {
         log.error('Cat {} is not owned by wrapper', [catIdHex]);
-        throw new Error('cat is not owned by wrapper');
+        throw '';
     }
     cat.wrapperTokenId = event.params.tokenID;
+    cat.wasWrapped = true;
+    // Owner is updated by adopt event.
     cat.save();
 }
 
@@ -221,9 +228,44 @@ export function handleCatUnwrappedEvent(event: CatUnwrappedEvent): void {
     let cat = getCatEntity(catIdHex);
     if (cat.owner == WRAPPER_ADDRESS.toHex()) {
         log.error('Cat {} is still owned by wrapper', [catIdHex]);
-        throw new Error('cat is still owned by wrapper');
+        throw '';
     }
     cat.wrapperTokenId = null;
+    // Owner is updated by adopt event.
+    cat.save();
+}
+
+export function handleWrappedCatTransferEvent(event: WrappedCatTransferEvent): void {
+    let tokenId = event.params.tokenId;
+    let r = WRAPPER.try__tokenIDToCatID(tokenId);
+    if (r.reverted) {
+        log.error('Cannot find cat ID for wrapped cat ID {}', [tokenId.toString()]);
+        throw '';
+    }
+    let catIdHex = r.value.toHex();
+    let cat = getCatEntity(catIdHex);
+    if (event.params.from == NULL_ADDRESS) {
+        // Mint, so set the wrapper owner.
+        let wrapperOwner = getOrCreateOwnerEntity(event.params.to);
+        wrapperOwner.catCount = (wrapperOwner.catCount + 1) as i32;
+        wrapperOwner.save();
+        cat.wrapperOwner = wrapperOwner.id;
+    } else if (event.params.to == NULL_ADDRESS) {
+        // Burn, so clear the wrapper owner.
+        let wrapperOwner = getOrCreateOwnerEntity(event.params.from);
+        wrapperOwner.catCount = (wrapperOwner.catCount - 1) as i32;
+        wrapperOwner.save();
+        cat.wrapperOwner = null;
+    } else {
+        // Transfer.
+        let oldOwner = getOrCreateOwnerEntity(event.params.from);
+        let newOwner = getOrCreateOwnerEntity(event.params.to);
+        oldOwner.catCount = (oldOwner.catCount - 1) as i32;
+        oldOwner.save();
+        newOwner.catCount = (oldOwner.catCount + 1) as i32;
+        newOwner.save();
+        cat.wrapperOwner = newOwner.id;
+    }
     cat.save();
 }
 
@@ -235,7 +277,7 @@ function getCatEntity(catId: string): CatEntity {
     let cat = CatEntity.load(catId);
     if (!cat) {
         log.error('Cat {} not found', [catId]);
-        throw new Error('cat with id ' + catId + ' not found');
+        throw '';
     }
     return cat!;
 }
